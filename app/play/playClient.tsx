@@ -6,6 +6,7 @@ import {
     verifyAnswer,
     submitFinalScore,
 } from "@/app/actions";
+
 import Link from "next/link";
 
 type RoundOneQuestion = {
@@ -20,8 +21,8 @@ type RoundTwoQuestion = {
     type: string;
 };
 
-const ROUND_1_TIME = 30;
-const ROUND_2_TIME = 60;
+const ROUND_1_TIME = Number(process.env.NEXT_PUBLIC_ROUND_1_TIME) || 40;
+const ROUND_2_TIME = Number(process.env.NEXT_PUBLIC_ROUND_2_TIME) || 60;
 
 export default function PlayClient() {
     const [username, setUsername] = useState("");
