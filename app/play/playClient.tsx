@@ -150,20 +150,24 @@ export default function PlayClient() {
     // Username Screen
     if (!started) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="w-96 p-8 rounded-2xl shadow-lg border bg-white dark:bg-neutral-900">
-                    <h1 className="text-2xl font-bold mb-4">
+            <div className="min-h-screen flex items-center justify-center bg-black">
+                <div className="w-96 p-8 rounded-2xl shadow-2xl border border-slate-800 bg-neutral-950">
+                    <h1 className="text-2xl font-bold mb-6 text-white tracking-tight">
                         Enter Username
                     </h1>
+
                     <input
-                        className="border w-full p-2 rounded mb-4 bg-transparent"
+                        placeholder="Player One"
+                        className="w-full p-3 rounded-lg mb-6 bg-black border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        autoFocus
                     />
+
                     <button
                         disabled={!username.trim()}
                         onClick={() => setStarted(true)}
-                        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-neutral-400 transition"
+                        className="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-slate-200 disabled:bg-slate-800 disabled:text-slate-500 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                     >
                         Start Game
                     </button>
