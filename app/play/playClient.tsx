@@ -37,6 +37,7 @@ export default function PlayClient() {
 
     const [selected, setSelected] = useState<number | boolean | null>(null);
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const [localScore, setLocalScore] = useState(0);
     const [timer, setTimer] = useState(ROUND_1_TIME);
@@ -60,7 +61,7 @@ export default function PlayClient() {
         load();
     }, []);
 
-    // Round-based timer
+    // Timer
     useEffect(() => {
         if (!started || finalScore !== null || roundEnded) return;
 
@@ -81,9 +82,10 @@ export default function PlayClient() {
     }, [timer, started, round, finalScore, roundEnded]);
 
     async function handleAnswer(choice: number | boolean) {
-        if (selected !== null) return;
+        if (selected !== null || isVerifying) return;
 
         setSelected(choice);
+        setIsVerifying(true);
 
         const question =
             round === 1
@@ -91,18 +93,26 @@ export default function PlayClient() {
                 : roundTwoQuestions[currentIndex];
 
         const correct = await verifyAnswer(round, question.id, choice);
+
         setIsCorrect(!!correct);
+        setIsVerifying(false);
 
         if (correct) setLocalScore((s) => s + 1);
 
         if (round === 1) {
-            setAnswersRoundOne((prev) => [...prev, { id: question.id, choice: choice as number }]);
+            setAnswersRoundOne((prev) => [
+                ...prev,
+                { id: question.id, choice: choice as number },
+            ]);
         } else {
-            setAnswersRoundTwo((prev) => [...prev, { id: question.id, isAi: choice as boolean }]);
+            setAnswersRoundTwo((prev) => [
+                ...prev,
+                { id: question.id, isAi: choice as boolean },
+            ]);
         }
     }
 
-    async function handleNext() {
+    function handleNext() {
         const questions = round === 1 ? roundOneQuestions : roundTwoQuestions;
 
         if (currentIndex < questions.length - 1) {
@@ -137,16 +147,16 @@ export default function PlayClient() {
         setRoundEnded(false);
     }
 
-    // Username screen
+    // Username Screen
     if (!started) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="w-96 p-8 rounded-2xl shadow-lg border bg-white dark:bg-neutral-900">
-                    <h1 className="text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+                    <h1 className="text-2xl font-bold mb-4">
                         Enter Username
                     </h1>
                     <input
-                        className="border w-full p-2 rounded mb-4 bg-transparent text-neutral-900 dark:text-white"
+                        className="border w-full p-2 rounded mb-4 bg-transparent"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
@@ -162,16 +172,18 @@ export default function PlayClient() {
         );
     }
 
-    // Round 1 End Screen
+    // Round 1 End
     if (roundEnded && round === 1) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-6">
-                <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
+                <h1 className="text-3xl font-bold">
                     Round 1 Complete
                 </h1>
                 <div className="text-lg">
                     Current Score:{" "}
-                    <span className="font-bold text-blue-600">{localScore}</span>
+                    <span className="font-bold text-blue-600">
+                        {localScore}
+                    </span>
                 </div>
                 <button
                     onClick={startRoundTwo}
@@ -183,11 +195,11 @@ export default function PlayClient() {
         );
     }
 
-    // Final Score Screen
+    // Final Screen
     if (finalScore !== null) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-6">
-                <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
+                <h1 className="text-3xl font-bold">
                     Final Score
                 </h1>
                 <div className="text-5xl font-extrabold text-blue-600">
@@ -197,13 +209,13 @@ export default function PlayClient() {
                 <div className="flex gap-4">
                     <Link
                         href="/leaderboard"
-                        className="px-8 py-4 bg-slate-800 text-white font-bold rounded-full border border-slate-700 hover:bg-slate-700 transition-all duration-300 text-center"
+                        className="px-8 py-4 bg-slate-800 text-white font-bold rounded-full hover:bg-slate-700 transition"
                     >
                         Leaderboard
                     </Link>
                     <Link
                         href="/play"
-                        className="px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-green-500 hover:text-white transition-all duration-300 text-center shadow-lg hover:shadow-green-500/20"
+                        className="px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-green-500 hover:text-white transition shadow-lg"
                     >
                         Play Again
                     </Link>
@@ -218,56 +230,65 @@ export default function PlayClient() {
     const progress =
         totalQuestions === 0
             ? 0
-            : (currentIndex / totalQuestions) * 100;
+            : ((currentIndex + 1) / totalQuestions) * 100;
 
     const currentQuestion = questions[currentIndex];
     if (!currentQuestion) return null;
 
     const isVideo =
-        // @ts-ignore
-        round === 2 && currentQuestion.type === "video";
+        round === 2 &&
+        (currentQuestion as RoundTwoQuestion).type === "video";
 
     return (
         <div className="min-h-screen p-8">
             <div className="max-w-5xl mx-auto">
 
-                {/* Header */}
-                <div className="flex justify-between mb-6 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+                <div className="flex justify-between mb-6 text-lg font-semibold">
                     <div>Round {round}</div>
-                    <div className="text-blue-600">Score: {localScore}</div>
+                    <div className="text-blue-600">
+                        Score: {localScore}
+                    </div>
                     <div className={timer <= 10 ? "text-red-600" : ""}>
                         Time: {timer}s
                     </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="w-full mb-6">
-                    <div className="flex justify-between text-sm text-neutral-600 dark:text-neutral-400 mb-1">
+                    <div className="flex justify-between text-sm mb-1">
                         <span>
                             Question {currentIndex + 1} / {totalQuestions}
                         </span>
                         <span>{Math.round(progress)}%</span>
                     </div>
 
-                    <div className="w-full h-3 bg-neutral-300 dark:bg-neutral-700 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-neutral-300 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-indigo-600 transition-all duration-500 ease-out"
+                            className="h-full bg-indigo-600 transition-all duration-500"
                             style={{ width: `${progress}%` }}
                         />
                     </div>
                 </div>
 
-                {/* Round 1 */}
-                {/* Round 1 */}
+                <div className="text-center mb-6">
+                    {round === 1 && (
+                        <h2 className="text-2xl font-bold">
+                            Which image is Real?
+                        </h2>
+                    )}
+                    {round === 2 && (
+                        <h2 className="text-2xl font-bold">
+                            Is this content AI generated?
+                        </h2>
+                    )}
+                </div>
+
                 {round === 1 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
                         {[1, 2].map((opt) => {
                             const url =
                                 opt === 1
-                                    // @ts-ignore
-                                    ? currentQuestion.option_a
-                                    // @ts-ignore
-                                    : currentQuestion.option_b;
+                                    ? (currentQuestion as RoundOneQuestion).option_a
+                                    : (currentQuestion as RoundOneQuestion).option_b;
 
                             const ring =
                                 selected === opt
@@ -279,7 +300,10 @@ export default function PlayClient() {
                             return (
                                 <div
                                     key={opt}
-                                    className={`w-full max-w-md cursor-pointer transition ${ring}`}
+                                    className={`w-full max-w-md cursor-pointer transition ${ring} ${isVerifying
+                                        ? "opacity-50 pointer-events-none"
+                                        : ""
+                                        }`}
                                     onClick={() => handleAnswer(opt)}
                                 >
                                     <img
@@ -292,14 +316,11 @@ export default function PlayClient() {
                     </div>
                 )}
 
-                {/* Round 2 */}
-                {/* Round 2 */}
                 {round === 2 && (
                     <div className="flex flex-col items-center gap-6">
                         {isVideo ? (
                             <video
-                                // @ts-ignore
-                                src={currentQuestion.url}
+                                src={(currentQuestion as RoundTwoQuestion).url}
                                 autoPlay
                                 loop
                                 muted
@@ -308,24 +329,24 @@ export default function PlayClient() {
                             />
                         ) : (
                             <img
-                                // @ts-ignore
-                                src={currentQuestion.url}
-                                alt="Question"
+                                src={(currentQuestion as RoundTwoQuestion).url}
                                 className="rounded-xl w-full max-w-3xl max-h-[70vh] object-contain"
                             />
                         )}
 
                         <div className="flex gap-6 flex-wrap justify-center">
                             <button
+                                disabled={isVerifying}
                                 onClick={() => handleAnswer(true)}
-                                className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition"
+                                className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
                             >
                                 AI Generated
                             </button>
 
                             <button
+                                disabled={isVerifying}
                                 onClick={() => handleAnswer(false)}
-                                className="bg-neutral-700 text-white px-6 py-3 rounded-xl hover:bg-neutral-600 transition"
+                                className="bg-neutral-700 text-white px-6 py-3 rounded-xl hover:bg-neutral-600 transition disabled:opacity-50"
                             >
                                 Not AI
                             </button>
@@ -333,19 +354,25 @@ export default function PlayClient() {
                     </div>
                 )}
 
-                {/* Feedback */}
                 {selected !== null && (
                     <div className="mt-6 text-center text-xl font-bold">
-                        {isCorrect ? (
-                            <span className="text-green-600">Correct ✓</span>
+                        {isVerifying ? (
+                            <span className="text-yellow-600 animate-pulse">
+                                Verifying...
+                            </span>
+                        ) : isCorrect ? (
+                            <span className="text-green-600">
+                                Correct ✓
+                            </span>
                         ) : (
-                            <span className="text-red-600">Wrong ✗</span>
+                            <span className="text-red-600">
+                                Wrong ✗
+                            </span>
                         )}
                     </div>
                 )}
 
-                {/* Next Button */}
-                {selected !== null && (
+                {selected !== null && !isVerifying && (
                     <div className="flex justify-center mt-6">
                         <button
                             onClick={handleNext}
